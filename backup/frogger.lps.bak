@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="3">
+      <Unit0>
+        <Filename Value="frogger.pas"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="46"/>
+        <CursorPos X="12" Y="63"/>
+        <FoldState Value=" TCFF92 TMk803 T3iP03222 pk5pD0U011 T1kD0{C04]B0tS0Lu"/>
+        <UsageCount Value="53"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="C:\Users\Tomek\Downloads\allegro-pas-4.4.5-bin-win\allegro.pas\lib\allegro.pas"/>
+        <UnitName Value="Allegro"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="4973"/>
+        <CursorPos X="29" Y="4966"/>
+        <UsageCount Value="25"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\VII-VIII\sortowanie.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="115"/>
+        <CursorPos X="37" Y="4"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
+      </Unit2>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="79" Column="50" TopLine="56"/>
+      </Position1>
+      <Position2>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="122" Column="74" TopLine="94"/>
+      </Position2>
+      <Position3>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="123" Column="79" TopLine="95"/>
+      </Position3>
+      <Position4>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="442" Column="74" TopLine="410"/>
+      </Position4>
+      <Position5>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="449" Column="16" TopLine="410"/>
+      </Position5>
+      <Position6>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="460" Column="36" TopLine="446"/>
+      </Position6>
+      <Position7>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="477" Column="6" TopLine="452"/>
+      </Position7>
+      <Position8>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="458" Column="105" TopLine="441"/>
+      </Position8>
+      <Position9>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="59" Column="34" TopLine="16"/>
+      </Position9>
+      <Position10>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="460" Column="12" TopLine="450"/>
+      </Position10>
+      <Position11>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="452" Column="48" TopLine="436"/>
+      </Position11>
+      <Position12>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="458" Column="46" TopLine="436"/>
+      </Position12>
+      <Position13>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="453" Column="48" TopLine="428"/>
+      </Position13>
+      <Position14>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="451" Column="6" TopLine="438"/>
+      </Position14>
+      <Position15>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="474" Column="12" TopLine="464"/>
+      </Position15>
+      <Position16>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="494" Column="28" TopLine="470"/>
+      </Position16>
+      <Position17>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="512" Column="13" TopLine="488"/>
+      </Position17>
+      <Position18>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="55" Column="24" TopLine="52"/>
+      </Position18>
+      <Position19>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="435" Column="28" TopLine="422"/>
+      </Position19>
+      <Position20>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="243" Column="10" TopLine="140"/>
+      </Position20>
+      <Position21>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="435" Column="14" TopLine="421"/>
+      </Position21>
+      <Position22>
+        <Filename Value="C:\Users\Tomek\Downloads\allegro-pas-4.4.5-bin-win\allegro.pas\lib\allegro.pas"/>
+        <Caret Line="4847" Column="12" TopLine="4843"/>
+      </Position22>
+      <Position23>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="243" Column="47" TopLine="140"/>
+      </Position23>
+      <Position24>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="429" Column="53" TopLine="420"/>
+      </Position24>
+      <Position25>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="512" Column="53" TopLine="494"/>
+      </Position25>
+      <Position26>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="506" Column="15" TopLine="495"/>
+      </Position26>
+      <Position27>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="475" Column="23" TopLine="466"/>
+      </Position27>
+      <Position28>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="278" Column="23" TopLine="253"/>
+      </Position28>
+      <Position29>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="51" Column="20" TopLine="28"/>
+      </Position29>
+      <Position30>
+        <Filename Value="frogger.pas"/>
+        <Caret Line="63" Column="14" TopLine="46"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>

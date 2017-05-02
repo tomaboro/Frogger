@@ -1,0 +1,567 @@
+//dopisac przesuwanie ekranu ze skokiem zaby
+//naprawic funkcje skucha
+
+program frogger;
+
+uses allegro,crt;
+
+const
+  //ustawiamy domyslne rozmiary okna
+  ScreenWidth= 1000;
+  ScreenHeight= 650;
+  //dlugosc skoku zaby oraz wysokosc jednego pola
+  skok=65;
+
+//typ definiujacy parametry danego podloza
+type podloze = record
+        //wspolrzedne lewego gornego rogu
+        x:integer;
+        y:integer;
+        //czy na polu mozna stanac
+	dang:boolean;
+        //wskaznik na bitmape z grafika pola
+        pic: AL_BITMAPptr;
+        typ:Smallint;
+end;
+
+//typ przetrzymujacy informacje o ilosci wystapienia danego pola
+type ostatnie_podloze = record
+       ile:Smallint;
+       //1-laka
+       //2-rzeka
+       //3-droga
+       rodzaj:Smallint;
+end;
+
+//typ przechowywujacy obiekty takie jak auta i klody
+type obiekt = record
+     x:Integer;
+     szybkosc:Integer;
+     odstep:Integer;
+     pic: AL_BITMAPptr;
+end;
+
+//typ przechowywujacy informacje o zabiach
+type zaba = record
+     x:Integer;
+     y:Integer;
+     hp:boolean;
+     pkt:Integer;
+     pkt_wzg:Integer;
+     kloda:boolean;
+     nr_pola:SmallInt;
+     pic: AL_BITMAPptr;
+end;
+
+//EasterEgg ;)
+var usmiech,bufor,menu,przycisk: AL_BITMAPptr;
+var jump,click,dead: AL_SAMPLEptr;
+//Niezbedne zmienne
+var tlo: array [1..12] of podloze;
+var obiekty: array [1..12] of obiekt;
+var ostatnie: ostatnie_podloze;
+var w_dol,z,button,i: Integer;
+var wynik: String;
+var zaba1,zaba2: zaba;
+var speed: LongInt;
+var l,r,u,d: boolean;
+
+procedure timer; CDECL;
+begin
+     inc(speed);
+end;
+
+//procedura ladujaca wszystkie procedury niezbedne do dzialania allegro
+procedure inicjalizacja;
+begin
+al_init;
+al_install_keyboard;
+al_set_color_depth(32);
+al_set_gfx_mode(Al_GFX_AUTODETECT_WINDOWED,ScreenWidth,ScreenHeight,0,0);
+al_install_timer;
+al_install_int_ex(@timer,al_bps_to_timer(30));
+al_install_sound(AL_DIGI_AUTODETECT, AL_MIDI_AUTODETECT);
+al_set_volume( 255, 255 );
+al_set_window_title('Frogger by motek');
+al_set_palette(al_default_palette);
+al_install_mouse();
+al_show_mouse( al_screen );
+al_unscare_mouse();
+end;
+
+
+//procedura losujaca szybkosc z jaka beda sie poruszac obiekty oraz
+procedure losuj_obiekt(indeks:Integer);
+var x:Integer;
+begin
+     //dla trawy nie losuj obiektow
+     if tlo[indeks].typ = 1 then Write()
+     //dla rzeki losuj wg. regul
+     else if tlo[indeks].typ = 2 then
+     begin
+          randomize;
+          obiekty[indeks].x:=random(500);
+          randomize;
+          obiekty[indeks].szybkosc:=random(6)+1;
+          if (tlo[indeks].typ <> tlo[indeks-1].typ) and (indeks<>1) then
+          begin
+               repeat obiekty[indeks].szybkosc:=random(9)+1;
+               until (obiekty[indeks].szybkosc > obiekty[indeks-1].szybkosc+2) or (obiekty[indeks].szybkosc < obiekty[indeks-1].szybkosc-2) ;
+          end;
+          randomize;
+          obiekty[indeks].odstep:=random(300)+300;
+          obiekty[indeks].pic:=al_load_bitmap('graphic/kloda.bmp',@al_default_palette);
+     end
+     //dla drogi losuj wg. regul
+     else
+     begin
+          randomize;
+          obiekty[indeks].x:=random(1000);
+          randomize;
+          obiekty[indeks].szybkosc:=random(6)+1;
+          randomize;
+          if (tlo[indeks].typ <> tlo[indeks-1].typ) and (indeks<>1) then
+          begin
+               repeat obiekty[indeks].szybkosc:=random(9)+1;
+               until (obiekty[indeks].szybkosc > obiekty[indeks-1].szybkosc+2) or (obiekty[indeks].szybkosc < obiekty[indeks-1].szybkosc-2) ;
+          end;
+          obiekty[indeks].odstep:=random(300)+300;
+          x:=random(3);
+          if x = 0 then obiekty[indeks].pic:=al_load_bitmap('graphic/auto.bmp',@al_default_palette)
+          else if x = 1 then obiekty[indeks].pic:=al_load_bitmap('graphic/auto1.bmp',@al_default_palette)
+          else if x = 2 then obiekty[indeks].pic:=al_load_bitmap('graphic/auto2.bmp',@al_default_palette);
+     end;
+end;
+
+//procedura losujaca pole wg. ustalonych wytycznych
+procedure losuj_pole(var pole:podloze);
+//laka-procentowe prawdopodobienstwo wylosowania laki
+//rzeka-             ---||---                    rzeki
+//rand-losowa liczba
+//tmp-tymczasowa zmienna w ktorej zapisana jest informacja o typie pola sprzed losowania
+var laka,rzeka,rand,tmp:Integer;
+begin
+     //jesli poprzednie pole to laka
+     if ostatnie.rodzaj = 1 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=10;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=0;
+               rzeka:=40;
+          end;
+     end;
+
+     //jesli poprzednie pole to rzeka
+     if ostatnie.rodzaj = 2 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=30;
+               rzeka:=50;
+          end
+          else if ostatnie.ile = 2 then
+          begin
+               laka:=50;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=90;
+               rzeka:=0;
+          end;
+     end;
+
+     //jesli poprzednie pole to droga
+     if ostatnie.rodzaj = 3 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=10;
+               rzeka:=10;
+          end
+          else if ostatnie.ile = 2 then
+          begin
+               laka:=10;
+               rzeka:=20;
+          end
+          else if ostatnie.ile = 3 then
+          begin
+               laka:=40;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=90;
+               rzeka:=10;
+          end;
+     end;
+
+     //zapisujemy obecny rodzaj pola
+     tmp:=ostatnie.rodzaj;
+     //losujemy liczbe
+     randomize;
+     rand:=random(99)+1;
+
+     //w zaleznosci w jakim zakresie wylosowala sie przypisz odpowiednie pole
+     if rand<=laka then
+     begin
+          ostatnie.rodzaj:=1;
+          pole.dang:=false;
+          pole.pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+          pole.typ:=1;
+     end
+     else if (rand>laka) and (rand<=rzeka+laka) then
+     begin
+          ostatnie.rodzaj:=2;
+          pole.dang:=true;
+          pole.pic:=al_load_bitmap('graphic/rzeka.bmp',@al_default_palette);
+          pole.typ:=2;
+     end
+     else
+     begin
+          ostatnie.rodzaj:=3;
+          pole.dang:=false;
+          pole.pic:=al_load_bitmap('graphic/droga.bmp',@al_default_palette);
+          pole.typ:=3;
+     end;
+
+     if ostatnie.rodzaj = tmp then inc(ostatnie.ile)
+     else ostatnie.ile:=1;
+
+end;
+
+//tworzy poczatkowa postac planszy
+procedure utworz_plansze;
+var i,j:integer;
+begin
+     //ustawiamy domyslna szybkosc przewijania planszy
+     w_dol:=1;
+     jump := al_load_sample( 'sounds/jump.wav' );
+     //pierwsze 2 pola to zawsze laki
+     tlo[1].x:=0;
+     tlo[1].y:=ScreenHeight-2*skok;
+     tlo[1].dang:=false;
+     tlo[1].pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+     tlo[1].typ:=1;
+     al_masked_blit( tlo[1].pic,bufor, 0, 0, 0, tlo[1].y, tlo[1].pic^.w, tlo[1].pic^.h );
+     losuj_obiekt(1);
+     tlo[2].x:=0;
+     tlo[2].y:=ScreenHeight-3*skok;
+     tlo[2].dang:=false;
+     tlo[2].pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+     tlo[2].typ:=1;
+     al_masked_blit( tlo[2].pic,bufor, 0, 0, tlo[2].x, tlo[2].y, tlo[2].pic^.w, tlo[2].pic^.h );
+     losuj_obiekt(2);
+     ostatnie.ile:=2;
+     ostatnie.rodzaj:=1;
+     //losuj pozostale 8 pol planszy
+     for i:=3 to 12 do
+     begin
+          tlo[i].x:=0;
+          tlo[i].y:=ScreenHeight-(i+1)*skok;
+          losuj_pole(tlo[i]);
+          losuj_obiekt(i);
+          al_masked_blit( tlo[i].pic,bufor, 0, 0, tlo[i].x, tlo[i].y, tlo[i].pic^.w, tlo[i].pic^.h );
+          for j:=1 to 5 do
+          begin
+              if tlo[i].typ <> 1 then al_masked_blit(obiekty[i].pic,bufor, 0, 0,obiekty[i].x+(j-1)*obiekty[i].odstep, tlo[i].y+3, obiekty[i].pic^.w, obiekty[i].pic^.h );
+          end;
+     end;
+     //wcytaj zabe i przypisz jej domyslne polozenie
+     zaba1.x:=ScreenWidth div 2 - 25;
+     zaba1.y:=tlo[2].y+12;
+     zaba1.nr_pola:=2;
+     zaba1.pic:=al_load_bitmap('graphic/zaba2.bmp',@al_default_palette);
+     al_masked_blit( zaba1.pic,bufor, 0, 0, zaba1.x, tlo[1].y, zaba1.pic^.w, zaba1.pic^.h );
+end;
+
+
+//przewijajaca ekran w dol razem ze znajdujacymi sie na nim obiektami
+procedure przewin;
+var i,j:Integer;
+begin
+     //wyczysc bufor;
+     al_clear_to_color(bufor, al_makecol(10,10,10));
+     //przesun tlo
+     if zaba1.y < 207 then w_dol := 8 ;
+     for i:=1 to 12 do
+     begin
+          //przewin wszystkie fragmenty tla na ekranie
+          tlo[i].y:=tlo[i].y+w_dol;
+          al_masked_blit( tlo[i].pic,bufor, 0, 0, tlo[i].x, tlo[i].y, tlo[i].pic^.w, tlo[i].pic^.h );
+
+          //przesun obiekty w prawo zgodnie z ich szybkoscia
+          obiekty[i].x:=obiekty[i].x-obiekty[i].szybkosc;
+          for j:=1 to 5 do
+          begin
+              if tlo[i].typ <> 1 then
+              al_masked_blit(obiekty[i].pic,bufor, 0, 0,obiekty[i].x+(j-1)*obiekty[i].odstep, tlo[i].y+3, obiekty[i].pic^.w, obiekty[i].pic^.h );
+          end;
+          if obiekty[i].x<-1*250 then obiekty[i].x:=obiekty[i].x+obiekty[i].odstep;
+     end;
+     //przesun zabe w dol
+     zaba1.y:=zaba1.y+w_dol;
+
+     if zaba1.ruch > 2 then zaba1.ruch:=zaba1.ruch-8
+     else
+     begin
+          zaba1.ruch:=0;
+          if l then zaba1.x:=zaba1.x-1
+          else if r then zaba1.x:=zaba1.x+1
+          else if u then zaba1.y:=zaba1.y-1
+          else if d then zaba1.y:=zaba1.y+1;
+          l:=false;
+          r:=false;
+          u:=false;
+          d:=false;
+     end;
+
+     if l then zaba1.x:=zaba1.x-8
+     else if r then zaba1.x:=zaba1.x+8
+     else if u then zaba1.y:=zaba1.y-8
+     else if d then zaba1.y:=zaba1.y+8;
+
+     for i:=1 to 12 do
+          if (zaba1.y < tlo[i].y - 65) and (zaba1.y > tlo[i].y) then zaba1.nr_pola:=i;
+
+
+      if z = 1 then zaba1.x:=zaba1.x-obiekty[zaba1.nr_pola].szybkosc;
+
+
+     //jesli zaba wyszla za ekran to cofnij ja na brzeg ekranu
+     if zaba1.x < 0 then zaba1.x:=0;
+     if zaba1.x > 950 then zaba1.x:=950;
+
+
+     al_masked_blit( zaba1.pic,bufor, 0, 0, zaba1.x, zaba1.y, zaba1.pic^.w, zaba1.pic^.h );
+
+     //jesli tlo jest pod ekranem to przeloz je na gore i wylosuj jego typ
+     for i:=1 to 12 do
+     begin
+     if tlo[i].y>=10*skok then
+     begin
+          losuj_pole(tlo[i]);
+          losuj_obiekt(i);
+          Writeln(tlo[i].y);
+          if i <> 1 then tlo[i].y:=tlo[i-1].y-65
+          else tlo[i].y:=tlo[12].y-65;
+          Writeln(tlo[i].y);
+     end;
+     end;
+     w_dol := 1;
+end;
+
+
+//sprawdza czy gracz zginal
+function skucha:boolean;
+var i,j,k:Integer;
+begin
+     z:=0;
+     k:=0;
+     skucha:=false;
+
+     //jesli plansza uciekla spod gracza to porazka
+     if zaba1.y>550 then skucha:=true
+     //jesli nie to sprawdz pozostale warunki
+     else
+     begin
+
+     for i:=1 to 12 do
+     begin
+          //jesli zaba znajduje sie na odpowiednim polu
+          if ((zaba1.y > tlo[i].y) and (zaba1.y < tlo[i].y + 65)) or
+             ((zaba1.y +40 > tlo[i].y) and (zaba1.y + 40 < tlo[i].y + 65)) then
+          begin
+               for j:=1 to 5 do
+               begin
+                    //i znajduje sie na obiekcie
+                    if (zaba1.x+40>obiekty[i].x+(j-1)*obiekty[i].odstep) and
+                       (zaba1.x<obiekty[i].x+(j-1)*obiekty[i].odstep+120) then
+                    begin
+                         //ktorym jest kloda
+                         if tlo[i].typ = 2 then
+                         begin
+                              z:=1;
+                              zaba1.nr_pola:=i;
+                              break;
+                         end
+                         //ktorym jest auto
+                         else if tlo[i].typ = 3 then
+                         begin
+                              skucha:=true;
+                              dead := al_load_sample( 'sounds/dead_car.wav' );
+                              al_play_sample( dead, 255, 127, 1000, false );
+                              zaba1.pic := al_load_bitmap('graphic/plama.bmp',@al_default_palette);
+                              break;
+                         end;
+                    end
+                    //i nie znajduje sie na obiekcie
+                    else
+                    begin
+                         //i jest w wodzie
+                         if tlo[i].typ = 2 then
+                         begin
+                              Inc(k);
+                         end;
+                    end;
+               end;
+               if k = 5 then
+               begin
+                    skucha:=true;
+                    dead := al_load_sample( 'sounds/dead_water.wav' );
+                    al_play_sample( dead, 255, 127, 1000, false );
+               end;
+          end;
+     end;
+     end;
+
+end;
+
+//wczytuje klawisze od gracza i odpowiednio steruje zaba
+procedure ruch;
+begin
+     if zaba1.ruch=0 then
+     begin
+     zaba1.ruch:=65;
+     if al_key[ AL_KEY_LEFT ] then
+     begin
+          l:=true;
+          al_play_sample( jump, 255, 127, 1000, false );
+     end
+     else if al_key[ AL_KEY_RIGHT ] then
+     begin
+          r:=true;
+          al_play_sample( jump, 255, 127, 1000, false );
+     end
+     else if al_key[ AL_KEY_UP ] then
+     begin
+          u:=true;
+          if wzg_pkt = punkty then Inc(punkty);
+          al_play_sample( jump, 255, 127, 1000, false );
+          Inc(wzg_pkt);
+     end
+     else if al_key[ AL_KEY_DOWN ] then
+     begin
+          d:=true;
+          al_play_sample( jump, 255, 127, 1000, false );
+          Dec(wzg_pkt);
+     end
+     else zaba1.ruch:=0;
+     end;
+end;
+
+procedure gra;
+begin
+  utworz_plansze;
+  al_blit( bufor, al_screen, 0, 0, 0, 0, bufor^.w, bufor^.h );
+  //Kopiujemy zawartosc bufora na ekran
+  delay(300);
+  speed:=0;
+  Writeln(skucha);
+  repeat
+  while speed > 0 do
+  begin
+       al_scare_mouse();
+       if not skucha then ruch;
+       przewin;
+       Str(punkty,wynik);
+       al_textout_ex(bufor,al_font,wynik,10,10,al_makecol( 255, 0, 255 ),-1);
+       al_blit( bufor, al_screen, 0, 0, 0, 0, bufor^.w, bufor^.h );
+       Writeln(punkty);
+       dec(speed);
+  end;
+  until (al_key[AL_KEY_ESC]) ;
+end;
+
+procedure menus;
+var klik : Integer;
+var pressed : boolean;
+begin
+  button:=0;
+
+  menu:= al_create_bitmap(1000,650);
+  al_clear_to_color(bufor, al_makecol(10,10,10));
+  al_clear_to_color(menu, al_makecol(126,152,80));
+
+  al_rectfill(menu,250,0,750,650,al_makecol(126,152,126));
+
+  al_circlefill(menu,500,100,80,al_makecol(250,244,19));
+  przycisk:=al_load_bitmap('graphic/zaba2.bmp',@al_default_palette);
+  al_masked_blit( przycisk,menu, 0, 0, 480, 80, przycisk^.w, przycisk^.h );
+  przycisk:=al_load_bitmap('buttons/1_gracz.bmp',@al_default_palette);
+  al_masked_blit( przycisk,menu, 0, 0, 380, 200, przycisk^.w, przycisk^.h );
+  przycisk:=al_load_bitmap('buttons/2_graczy.bmp',@al_default_palette);
+  al_masked_blit( przycisk,menu, 0, 0, 380, 300, przycisk^.w, przycisk^.h );
+  przycisk:=al_load_bitmap('buttons/NW.bmp',@al_default_palette);
+  al_masked_blit( przycisk,menu, 0, 0, 380, 400, przycisk^.w, przycisk^.h );
+  przycisk:=al_load_bitmap('buttons/koniec.bmp',@al_default_palette);
+  al_masked_blit( przycisk,menu, 0, 0, 380, 500, przycisk^.w, przycisk^.h );
+  przycisk:=al_load_bitmap('buttons/pressed.bmp',@al_default_palette);
+
+
+  //utworz_plansze;
+
+  //EasterEgg cd.
+  pressed:=false;
+  al_masked_blit( usmiech,bufor, 0, 0, 0, 0, usmiech^.w, usmiech^.h );
+  repeat
+  begin
+       for i:=2 to 5 do if (al_mouse_y < i*100+80) and (al_mouse_y>i*100) and (al_mouse_b = 1) and (al_mouse_x>380) and (al_mouse_x<620) then
+       begin
+            button:=i-1;
+            click := al_load_sample( 'sounds/click_on.wav' );
+            al_play_sample( click, 255, 127, 1000, false );
+       end;
+       klik:=0;
+       for i:=2 to 5 do if (al_mouse_y < i*100+80) and (al_mouse_y>i*100) and (al_mouse_x>380) and (al_mouse_x<620) then
+       begin
+       if pressed then
+       begin
+           click := al_load_sample( 'sounds/click_on.wav' );
+           al_play_sample( click, 255, 127, 1000, false );
+           pressed:=false;
+       end;
+       przycisk:=al_load_bitmap('buttons/pressed.bmp',@al_default_palette);
+       al_masked_blit( przycisk,menu, 0, 0, 380, 200+(i-2)*100, przycisk^.w, przycisk^.h );
+       al_blit( menu, al_screen, 0, 0, 0, 0, menu^.w, menu^.h );
+       end
+       else
+       begin
+       Inc(klik);
+       przycisk:=al_load_bitmap('buttons/unpressed.bmp',@al_default_palette);
+       al_masked_blit( przycisk,menu, 0, 0, 380, 200+(i-2)*100, przycisk^.w, przycisk^.h );
+       al_blit( menu, al_screen, 0, 0, 0, 0, menu^.w, menu^.h );
+       end;
+       if klik = 4 then pressed:=true;
+  end;
+  until button <> 0;
+end;
+
+begin
+  //ladujemy niezbedna dla allegro funkcje
+  inicjalizacja;
+
+  //EasterEgg cd.
+  usmiech:=al_load_bitmap('graphic/1.bmp',@al_default_palette);
+  przycisk:=al_load_bitmap('buttons/1_gracz.bmp',@al_default_palette);
+
+  //tworzymy bufor do podwojnego buforowania
+  bufor:= al_create_bitmap(1000,585);
+  al_clear_to_color(bufor, al_makecol(10,10,10));
+
+
+  while button <>4 do
+  begin
+       if button = 1 then gra;
+       menus;
+  end;
+
+  al_exit;
+
+end.
+

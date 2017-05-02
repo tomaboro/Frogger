@@ -1,0 +1,275 @@
+program frogger;
+
+uses allegro,crt;
+
+const
+  //ustawiamy domyslne rozmiary okna
+  ScreenWidth= 1000;
+  ScreenHeight= 650;
+  //dlugosc skoku zaby oraz wysokosc jednego pola
+  skok=65;
+
+//typ definiujacy parametry danego podloza
+type podloze = record
+        //wspolrzedne lewego gornego rogu
+        x:integer;
+        y:integer;
+        //czy na polu mozna stanac
+	dang:boolean;
+        //wskaznik na bitmape z grafika pola
+        pic: AL_BITMAPptr;
+        typ:Smallint;
+end;
+
+//typ przetrzymujacy informacje o ilosci wystapienia danego pola
+type ostatnie_podloze = record
+       ile:Smallint;
+       //1-laka
+       //2-rzeka
+       //3-droga
+       rodzaj:Smallint;
+end;
+
+type obiekt = record
+     x:Integer;
+     szybkosc:Integer;
+     odstep:Integer;
+     pic: AL_BITMAPptr;
+end;
+
+//EasterEgg ;)
+var usmiech,bufor: AL_BITMAPptr;
+//Niezbedne zmienne
+var tlo: array [1..11] of podloze;
+var obiekty: array [1..11] of obiekt;
+var ostatnie: ostatnie_podloze;
+var w_dol: Integer;
+
+//procedura ladujaca wszystkie procedury niezbedne do dzialania allegro
+procedure inicjalizacja;
+begin
+al_init;
+al_install_keyboard;
+al_set_color_depth(32);
+al_set_gfx_mode(Al_GFX_AUTODETECT_WINDOWED,ScreenWidth,ScreenHeight,0,0);
+al_install_timer;
+al_install_sound(AL_DIGI_AUTODETECT, AL_MIDI_AUTODETECT);
+al_set_window_title('Frogger by motek');
+al_set_palette(al_default_palette);
+end;
+
+procedure losuj_obiekt(indeks:Integer);
+begin
+     if tlo[indeks].typ = 1 then Writeln('UPS')
+     else if tlo[indeks].typ = 2 then
+     begin
+          randomize;
+          obiekty[indeks].x:=random(250);
+          randomize;
+          obiekty[indeks].szybkosc:=random(9)+1;
+          randomize;
+          obiekty[indeks].odstep:=random(199)+200;
+          obiekty[indeks].pic:=al_load_bitmap('graphic/kloda.bmp',@al_default_palette);
+     end
+     else
+     begin
+          randomize;
+          obiekty[indeks].x:=random(250);
+          randomize;
+          obiekty[indeks].szybkosc:=random(9)+1;
+          randomize;
+          obiekty[indeks].odstep:=random(199)+200;
+          obiekty[indeks].pic:=al_load_bitmap('graphic/auto.bmp',@al_default_palette);
+     end;
+end;
+
+//procedura losujaca pole wg. ustalonych wytycznych
+procedure losuj_pole(var pole:podloze);
+//laka-procentowe prawdopodobienstwo wylosowania laki
+//rzeka-             ---||---                    rzeki
+//rand-losowa liczba
+//tmp-tymczasowa zmienna w ktorej zapisana jest informacja o typie pola sprzed losowania
+var laka,rzeka,rand,tmp:Integer;
+begin
+     //jesli poprzednie pole to laka
+     if ostatnie.rodzaj = 1 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=10;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=0;
+               rzeka:=40;
+          end;
+     end;
+
+     //jesli poprzednie pole to rzeka
+     if ostatnie.rodzaj = 2 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=30;
+               rzeka:=50;
+          end
+          else if ostatnie.ile = 2 then
+          begin
+               laka:=50;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=90;
+               rzeka:=0;
+          end;
+     end;
+
+     //jesli poprzednie pole to droga
+     if ostatnie.rodzaj = 3 then
+     begin
+          if ostatnie.ile = 1 then
+          begin
+               laka:=10;
+               rzeka:=10;
+          end
+          else if ostatnie.ile = 2 then
+          begin
+               laka:=10;
+               rzeka:=20;
+          end
+          else if ostatnie.ile = 3 then
+          begin
+               laka:=40;
+               rzeka:=20;
+          end
+          else
+          begin
+               laka:=90;
+               rzeka:=10;
+          end;
+     end;
+
+     //zapisujemy obecny rodzaj pola
+     tmp:=ostatnie.rodzaj;
+     //losujemy liczbe
+     randomize;
+     rand:=random(99)+1;
+
+     //w zaleznosci w jakim zakresie wylosowala sie przypisz odpowiednie pole
+     if rand<=laka then
+     begin
+          ostatnie.rodzaj:=1;
+          pole.dang:=false;
+          pole.pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+          pole.typ:=1;
+     end
+     else if (rand>laka) and (rand<=rzeka+laka) then
+     begin
+          ostatnie.rodzaj:=2;
+          pole.dang:=true;
+          pole.pic:=al_load_bitmap('graphic/rzeka.bmp',@al_default_palette);
+          pole.typ:=2;
+     end
+     else
+     begin
+          ostatnie.rodzaj:=3;
+          pole.dang:=false;
+          pole.pic:=al_load_bitmap('graphic/droga.bmp',@al_default_palette);
+          pole.typ:=3;
+     end;
+
+     if ostatnie.rodzaj = tmp then inc(ostatnie.ile)
+     else ostatnie.ile:=1;
+
+end;
+
+//tworzy poczatkowa postac planszy
+procedure utworz_plansze;
+var i,j,x:integer;
+begin
+     //ustawiamy domyslna szybkosc przewijania planszy
+     w_dol:=1;
+     //pierwsze 2 pola to zawsze laki
+     tlo[1].x:=0;
+     tlo[1].y:=ScreenHeight-2*skok;
+     tlo[1].dang:=false;
+     tlo[1].pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+     al_masked_blit( tlo[1].pic,bufor, 0, 0, 0, tlo[1].y, tlo[1].pic^.w, tlo[1].pic^.h );
+     losuj_obiekt(1);
+     tlo[2].x:=0;
+     tlo[2].y:=ScreenHeight-3*skok;
+     tlo[2].dang:=false;
+     tlo[2].pic:=al_load_bitmap('graphic/laka.bmp',@al_default_palette);
+     al_masked_blit( tlo[2].pic,bufor, 0, 0, tlo[2].x, tlo[2].y, tlo[2].pic^.w, tlo[2].pic^.h );
+     losuj_obiekt(2);
+     ostatnie.ile:=2;
+     ostatnie.rodzaj:=1;
+     //losuj pozostale 8 pol planszy
+     for i:=3 to 11 do
+     begin
+          tlo[i].x:=0;
+          tlo[i].y:=ScreenHeight-(i+1)*skok;
+          losuj_pole(tlo[i]);
+          losuj_obiekt(i);
+          al_masked_blit( tlo[i].pic,bufor, 0, 0, tlo[i].x, tlo[i].y, tlo[i].pic^.w, tlo[i].pic^.h );
+          for j:=1 to 5 do
+          begin
+              if tlo[i].typ <> 1 then al_masked_blit(obiekty[i].pic,bufor, 0, 0,obiekty[i].x+(j-1)*obiekty[i].odstep, tlo[i].y, obiekty[i].pic^.w, obiekty[i].pic^.h );
+          end;
+     end;
+end;
+
+
+procedure przewin;
+var i,j:Integer;
+begin
+     al_clear_to_color(bufor, al_makecol(10,10,10));
+     for i:=1 to 11 do
+     begin
+          if tlo[i].y>=10*skok then
+          begin
+               losuj_pole(tlo[i]);
+               losuj_obiekt(i);
+               tlo[i].y:=-skok+w_dol;
+          end
+          else tlo[i].y:=tlo[i].y+w_dol;
+          al_masked_blit( tlo[i].pic,bufor, 0, 0, tlo[i].x, tlo[i].y, tlo[i].pic^.w, tlo[i].pic^.h );
+          obiekty[i].x:=obiekty[i].x-obiekty[i].szybkosc;
+          for j:=1 to 5 do
+          begin
+              if tlo[i].typ <> 1 then al_masked_blit(obiekty[i].pic,bufor, 0, 0,obiekty[i].x+(j-1)*obiekty[i].odstep, tlo[i].y, obiekty[i].pic^.w, obiekty[i].pic^.h );
+          end;
+          if obiekty[i].x<-1*250 then obiekty[i].x:=obiekty[i].x+250+obiekty[i].odstep;
+     end;
+end;
+
+begin
+  inicjalizacja;
+
+  //EasterEgg cd.
+  usmiech:=al_load_bitmap('graphic/1.bmp',@al_default_palette);
+
+  //tworzymy bufor do podwojnego buforowania
+  bufor:= al_create_bitmap(1000,585);
+  al_clear_to_color(bufor, al_makecol(10,10,10));
+
+  utworz_plansze;
+
+  //EasterEgg cd.
+  al_masked_blit( usmiech,bufor, 0, 0, 0, 0, usmiech^.w, usmiech^.h );
+
+  //Kopiujemy zawartosc bufora na ekran
+  while not al_key[AL_KEY_ESC]do
+  begin
+  al_blit( bufor, al_screen, 0, 0, 0, 0, bufor^.w, bufor^.h );
+  przewin;
+  delay(10);
+  end;
+
+  //program czeka na wcisniecie klawisza
+  al_readkey();
+  al_exit;
+end.
+
